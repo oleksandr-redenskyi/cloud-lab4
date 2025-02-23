@@ -13,18 +13,18 @@ RDS_DB_NAME = os.environ["database_name"]
 RDS_USERNAME = os.environ["db_username"]
 RDS_PASSWORD = os.environ["db_password"]
 
-application = Flask(__name__)
-application.secret_key = "YOUR_SECRET_KEY"
+app = Flask(__name__)
+app.secret_key = "YOUR_SECRET_KEY"
 # Updated DB URI for PostgreSQL using psycopg2 driver
-application.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql+psycopg2://{RDS_USERNAME}:{RDS_PASSWORD}@{RDS_HOSTNAME}:{RDS_PORT}/{RDS_DB_NAME}"
+app.config["SQLALCHEMY_DATABASE_URI"] = f"postgresql+psycopg2://{RDS_USERNAME}:{RDS_PASSWORD}@{RDS_HOSTNAME}:{RDS_PORT}/{RDS_DB_NAME}"
 
-# Register the database instance to the application
-db = SQLAlchemy(application)
-migrate = Migrate(application, db)
+# Register the database instance to the app
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 try:
     print("Applying migrations")
-    with application.app_context():
+    with app.app_context():
         upgrade()
     print("Migrations applied")
 except Exception as e:
@@ -39,7 +39,7 @@ class Country(db.Model):
     is_landlocked = db.Column(db.Boolean, default=False)
 
 
-@application.route("/countries", methods=["GET"])
+@app.route("/countries", methods=["GET"])
 def get_countries():
     countries = Country.query.all()
     result = [{
@@ -51,7 +51,7 @@ def get_countries():
     } for country in countries]
     return jsonify(result)
 
-@application.route("/countries/<int:id>", methods=["GET"])
+@app.route("/countries/<int:id>", methods=["GET"])
 def get_country(id):
     country = Country.query.get_or_404(id)
     return jsonify({
@@ -62,7 +62,7 @@ def get_country(id):
         "is_landlocked": country.is_landlocked,
     })
 
-@application.route("/countries", methods=["POST"])
+@app.route("/countries", methods=["POST"])
 def create_country():
     data = request.get_json() or {}
     new_country = Country(
@@ -75,7 +75,7 @@ def create_country():
     db.session.commit()
     return jsonify({"message": "Country created", "id": new_country.id}), 201
 
-@application.route("/countries/<int:id>", methods=["PUT"])
+@app.route("/countries/<int:id>", methods=["PUT"])
 def update_country(id):
     country = Country.query.get_or_404(id)
     data = request.get_json() or {}
@@ -86,7 +86,7 @@ def update_country(id):
     db.session.commit()
     return jsonify({"message": "Country updated"})
 
-@application.route("/countries/<int:id>", methods=["DELETE"])
+@app.route("/countries/<int:id>", methods=["DELETE"])
 def delete_country(id):
     country = Country.query.get_or_404(id)
     db.session.delete(country)
@@ -95,12 +95,12 @@ def delete_country(id):
 
 
 # Return tracebacks for debugging purposes
-@application.errorhandler(Exception)
+@app.errorhandler(Exception)
 def handle_exception(e):
     return traceback.format_exc(), 500
 
 
-# Run the application (this is not used by Elastic Beanstalk)
+# Run the app (this is not used by Elastic Beanstalk)
 if __name__ == "__main__":
     # Auto apply migrations before starting the app
-    application.run()
+    app.run()
